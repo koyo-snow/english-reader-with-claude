@@ -6,6 +6,8 @@ Obsidian Vault の英語文書を Claude の解説付きで読む macOS 専用 E
 
 - `npm run dev` 開発起動 / `npm run typecheck` 型チェック / `npm run build` → `dist/mac-arm64/English Reader.app`
 - `npx electron-vite build` だけなら `out/` に出力され、`npx electron .` で起動できる
+- `npm test` 単体テスト（Vitest、`tests/unit/`） / `npm run test:e2e` ビルド + E2E（Playwright、`tests/e2e/`） / `npm run test:all` 型チェックも含めて全部
+- CI（`.github/workflows/ci.yml`）は型チェックと単体テストだけ。E2E は CI に組み込まず、ローカルで実行する。
 
 ## 設計上の約束
 
@@ -20,3 +22,10 @@ Obsidian Vault の英語文書を Claude の解説付きで読む macOS 専用 E
 ## 動作確認のやり方
 
 起動時に `--remote-debugging-port=9333` を付けると、`node scripts/cdp.mjs eval '<js>'` / `shot <png>` / `console` でレンダラーを操作・撮影できる（`window.api` も呼べる）。メニューのショートカットは CDP のキー入力では発火しないので、`osascript` で `process "Electron"` のメニュー項目をクリックする。
+
+## テストの約束
+
+- テストの題名は仕様書の文をそのまま書き、先頭に ID（`TREE-04` など）を付ける。章と ID の対応、手動で確かめる項目は `docs/テストケース.md`。
+- 仕様を満たしていないと分かった項目は、テストを消したり実装に合わせて緩めたりせず、`it.fails` / `test.fail()` を付けて原因をコメントに書く。直したら印を外す。
+- E2E は `tests/e2e/support/app.ts` の `launch()` で起動する。`--user-data-dir` で一時フォルダを使い、Claude・`say`・`shell.openExternal`・ダイアログはメインプロセス側で差し替える。メニューのショートカットは `app.menu('CmdOrCtrl+L')` で項目を直接実行する。
+- 起動中に `state.json` をディスクから読んで確かめない（終了時にしか書き出されない。`docs/テストケース.md` の JSON-32）。`app.settle()` → `app.quit()` / `app.restart()` の後で読む。
