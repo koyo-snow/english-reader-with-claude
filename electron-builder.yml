@@ -1,0 +1,18 @@
+appId: dev.koyo-snow.english-reader
+productName: English Reader
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - package.json
+  - "!**/*.map"
+asarUnpack:
+  - node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/**
+  - node_modules/@anthropic-ai/claude-agent-sdk-darwin-x64/**
+mac:
+  target: dir
+  # build/icon.png (1024x1024 推奨、最低 512x512) を置くと .icns に自動変換される
+  icon: build/icon.png
+  category: public.app-category.education
+  identity: null
