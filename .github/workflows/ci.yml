@@ -1,0 +1,69 @@
+name: CI
+
+# E2E（tests/e2e）は CI では動かさない。ローカルで `npm run test:e2e` を実行する。
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: 型チェック・単体テスト
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: 依存関係のインストール
+        run: npm ci
+        env:
+          # 単体テストは electron を差し替えて動かすので、Electron 本体は要らない
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: 型チェック
+        run: npm run typecheck
+      - name: 単体テスト（Vitest）
+        run: npm test
+
+  # 配布はしないので Release は作らない。タグ（v*）を打ったときと手動実行のときだけ、
+  # macOS で .app をビルドして Actions の成果物として残す。
+  package:
+    name: .app のビルド（macOS）
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: unit
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: 依存関係のインストール
+        run: npm ci
+      - name: ビルドとパッケージ（署名・公証なし）
+        run: npm run build
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: .app ができていることを確認
+        run: test -d "dist/mac-arm64/English Reader.app"
+      - name: .app を zip にまとめる
+        run: ditto -c -k --keepParent "dist/mac-arm64/English Reader.app" "English-Reader-mac-arm64.zip"
+      - name: .app を成果物として保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: English-Reader-mac-arm64
+          path: English-Reader-mac-arm64.zip
+          retention-days: 14
+          compression-level: 0

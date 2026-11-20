@@ -4,7 +4,7 @@ Obsidian Vault に保存した英語の字幕・技術文書を読み、選択�
 
 ## 前提
 
-- Node.js 20 以上
+- Node.js 22.12 以上（CI は 24）
 - Claude Code CLI がインストール済みで、ターミナルで `claude` にログイン済みであること（API キーは使わない）
 
 ## 開発
@@ -17,6 +17,20 @@ npm run build      # dist/mac-arm64/English Reader.app を作る（署名・公�
 ```
 
 初回起動後、設定タブ（Cmd+,）で Vault のパスを指定する。
+
+## テスト
+
+```bash
+npm test           # 単体テスト（Vitest）。tests/unit/
+npm run test:e2e   # ビルドしてから E2E（Playwright + Electron）。tests/e2e/
+npm run test:all   # 型チェック + 単体 + E2E
+```
+
+E2E はテストごとに一時フォルダを作り、そこを設定の保存先と Vault にしてアプリを起動する（本物の設定・Vault には触らない）。Claude・`say`・外部ブラウザは差し替えているので、ログインやネットワークは要らない。実行中は Electron のウィンドウが次々に開く。
+
+仕様書との対応、仕様との差分として記録している項目、手動で確かめる項目は `docs/テストケース.md` にまとめてある。
+
+CI（`.github/workflows/ci.yml`）は PR と main への push で動き、型チェックと単体テストを行う。E2E は CI では動かさないので、ローカルで `npm run test:e2e` を実行する。`v*` のタグを打つか手動実行すると、macOS で `.app` をビルドして Actions の成果物として残す。
 
 アプリアイコンは `build/icon.png`（正方形、1024x1024 推奨・最低 512x512）を置く。`npm run build` で `.icns` に変換されて `.app` に埋め込まれ、`npm run dev` でも Dock に表示される。ファイルがなければ Electron 標準のアイコンになる。
 
